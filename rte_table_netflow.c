@@ -110,12 +110,13 @@ rte_table_netflow_entry_add(
     uint8_t notfound = 0; 
     struct timeval curr;
 
-	printf ("src_ip = %d\n", k->ip_src);
+#if DEBUG
+  	printf ("src_ip = %d\n", k->ip_src);
 	printf ("dst_ip = %d\n", k->ip_dst);
 	printf ("proto = %d\n", k->proto);
 	printf ("src_port = %d\n", k->port_src);
 	printf ("dst_port = %d\n", k->port_dst);
-
+#endif
     /* hashing with SSE4_2 CRC32 */ 
     idx = rte_hash_crc_4byte(k->proto, idx);
     idx = rte_hash_crc_4byte(k->ip_src, idx);
@@ -260,6 +261,36 @@ rte_table_print(void *table)
 		}
         rte_spinlock_unlock(&t->lock[i]);
 	}
+
+	return 0;
+}
+
+
+int
+rte_table_print_stats(void *table)
+{
+	struct rte_table_netflow *t = (struct rte_table_netflow *)table;
+	hashBucket_t *bkt;
+
+   uint64_t total_bytes = 0;
+   uint64_t total_pkts  = 0;
+
+   printf ("\nprinting flow table statistics\n");
+   printf ("t->n_entries = %d\n", t->n_entries);
+
+   for (unsigned int i = 0; i < t->n_entries; i++) {
+      rte_spinlock_lock(&t->lock[i]);
+		bkt = t->array[i];
+		if (bkt != NULL) {
+         total_bytes += bkt->bytesSent;
+         total_pkts  += bkt->pktSent;
+		}
+      rte_spinlock_unlock(&t->lock[i]);
+	}
+
+   printf ("total bytes = %lu\n", total_bytes);
+   printf ("total pkts  = %lu\n", total_pkts);
+
 
 	return 0;
 }

@@ -71,12 +71,15 @@ setup_netflow_table(void)
     table = (struct rte_table_netflow *)rte_table_netflow_create(&param, 0, sizeof(hashBucket_t));
 }   
 
+#define DEBUG 0
 
 static void
 main_loop(void)
 {
 	struct rte_mbuf *mbufs[32];
+#if DEBUG
 	struct ether_hdr *eth_hdr;
+#endif
 	struct rte_flow_error error;
 	uint16_t nb_rx;
 	uint16_t i;
@@ -92,9 +95,9 @@ main_loop(void)
 				for (j = 0; j < nb_rx; j++) {
 					struct rte_mbuf *m = mbufs[j];
 
-					eth_hdr = rte_pktmbuf_mtod(m,
-							struct ether_hdr *);
-#if 1
+#if DEBUG
+					eth_hdr = rte_pktmbuf_mtod(m, struct ether_hdr *);
+
 					print_ether_addr("src=",
 							&eth_hdr->s_addr);
 					print_ether_addr(" - dst=",
@@ -107,14 +110,18 @@ main_loop(void)
 					rte_pktmbuf_free(m);
 				}
 				pkt_cnt += nb_rx;
-				if ((pkt_cnt % 10000) == 0) {
+				if ((pkt_cnt % 1000000) == 0) {
 					printf("%d packets received\n", pkt_cnt);
 				}
 			}
 		}
 	}
 
+#if DEBUG
 	rte_table_print(table);
+#endif
+   
+   rte_table_print_stats(table);
 
 	/* closing and releasing resources */
 	rte_flow_flush(port_id, &error);

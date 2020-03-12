@@ -157,6 +157,7 @@ void *rte_table_netflow_create(void *, int, uint32_t);
 int rte_table_netflow_entry_add(void *, void *, void *);
 int rte_table_netflow_free(void *);
 int rte_table_print(void *);
+int rte_table_print_stats(void *);
 
 #ifdef __cplusplus
 }

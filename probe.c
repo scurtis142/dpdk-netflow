@@ -99,6 +99,9 @@ process_ipv4(struct rte_mbuf * m, int vlan)
     struct udp_hdr   *udp;
        
     union rte_table_netflow_key k;
+    /* To silence warnings */
+    k.port_src = 0; 
+    k.port_dst = 0; 
 
     /* Adjust for a vlan header if present */
     if (vlan)
@@ -162,12 +165,17 @@ packet_classify( struct rte_mbuf * m)
     pType = packet_type(m);
 
     switch((int)pType) {
-        case ETHER_TYPE_ARP:    printf("arp\n"); break;
-        case ETHER_TYPE_IPv4:   printf("ipv4\n"); process_ipv4(m, 0);  break;
-        case ETHER_TYPE_IPv6:   printf("ipv6\n"); break;
-        case ETHER_TYPE_VLAN:   printf("vlan\n"); break;
-        case UNKNOWN_PACKET:    printf("unknown\n");/* FALL THRU */
-        default:                break;
+        case ETHER_TYPE_ARP:    //printf("arp\n"); 
+           break;
+        case ETHER_TYPE_IPv4:   //printf("ipv4\n");
+           process_ipv4(m, 0);  break;
+        case ETHER_TYPE_IPv6:   //printf("ipv6\n");
+           break;
+        case ETHER_TYPE_VLAN:   //printf("vlan\n");
+           break;
+        case UNKNOWN_PACKET:    //printf("unknown\n");/* FALL THRU */
+        default:                
+           break;
     }
     
 }
