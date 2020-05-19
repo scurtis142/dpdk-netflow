@@ -274,6 +274,7 @@ rte_table_print_stats(void *table)
 
    uint64_t total_bytes = 0;
    uint64_t total_pkts  = 0;
+   uint64_t total_flows = 0;
 
    printf ("\nprinting flow table statistics\n");
    printf ("t->n_entries = %d\n", t->n_entries);
@@ -281,15 +282,18 @@ rte_table_print_stats(void *table)
    for (unsigned int i = 0; i < t->n_entries; i++) {
       rte_spinlock_lock(&t->lock[i]);
 		bkt = t->array[i];
-		if (bkt != NULL) {
+		while (bkt != NULL) {
          total_bytes += bkt->bytesSent;
          total_pkts  += bkt->pktSent;
+         total_flows++;
+         bkt = bkt->next;
 		}
       rte_spinlock_unlock(&t->lock[i]);
 	}
 
    printf ("total bytes = %lu\n", total_bytes);
    printf ("total pkts  = %lu\n", total_pkts);
+   printf ("total flows = %lu\n", total_flows);
 
 
 	return 0;
