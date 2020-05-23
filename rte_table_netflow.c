@@ -29,9 +29,16 @@
  */
 
 
-#include <string.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <rte_common.h>
 #include <rte_mbuf.h>
@@ -297,4 +304,84 @@ rte_table_print_stats(void *table)
 
 
 	return 0;
+}
+
+
+void rte_table_export_to_file (const char *filename) {
+
+   int buf_size = EXPORT_BUF_INITAL_SIZE;
+   int fd;
+   int snp_res;
+   size_t buf_end_offset = 0;
+   char *buf;
+   const char *tmpfile = "/tmp/netflow-export-tmp.csv";
+   hashBucket_t *bucket;
+   struct in_addr src_addr;
+   struct in_addr dst_addr;
+   char src_ip_str[16];
+   char dst_ip_str[16];
+
+   if ((buf = malloc (sizeof (char) * buf_size)) == NULL) {
+      printf ("malloc failed with %s\n", strerror (errno));
+      exit (1);
+   }
+
+   for (unsigned int i = 0; i < table->n_entries; i++) {
+		rte_spinlock_lock(&table->lock[i]);
+		bucket = table->array[i];
+		while (bucket != NULL) {
+         /* Free space needed in buffer is maximum number of digits needed to represent
+          * an entry which is 91(including null byte) */
+         if ((buf_size - buf_end_offset) <= 91) {
+            if ((buf = realloc (buf, buf_size * 2)) == NULL) {
+               printf ("realloc failed with error %s\n", strerror (errno));
+               exit (1);
+            } else {
+               buf_size *= 2;
+            }
+         }
+         /* Need to copy the string here rather than use directly in the sprintf
+            because inet_ntoa return a static buffer that get written over on
+            subsequent calls */
+         src_addr.s_addr = bucket->ip_src;
+         dst_addr.s_addr = bucket->ip_dst;
+         strcpy(src_ip_str, inet_ntoa(src_addr));
+         strcpy(dst_ip_str, inet_ntoa(dst_addr));
+
+         snp_res = snprintf ((buf + buf_end_offset), 91, "%s,%s,%d,%d,%d,%lu,%lu\n",
+               src_ip_str,
+               dst_ip_str,
+               bucket->port_src,
+               bucket->port_dst,
+               bucket->proto,
+               bucket->bytesSent,
+               bucket->pktSent);
+         if (snp_res < 0) {
+            printf ("sprintf failed with %s\n", strerror (errno));
+            exit (1);
+         }
+         buf_end_offset += snp_res;
+         bucket = bucket->next;
+		}
+      rte_spinlock_unlock(&table->lock[i]);
+	}
+
+   /* More effeciant to just do a single write */
+   if ((fd = open (tmpfile, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXO)) < 0) { /* Returns non-negative integer on success */
+      printf ("open failed with error %s\n", strerror (errno));
+      exit (1);
+   }
+
+   if((int)buf_end_offset != write (fd, buf, buf_end_offset)) {
+      printf ("write didn't return expected number of bytes\n");
+      exit (1);
+   }
+
+   if (close (fd) != 0) { /* Returns 0 on success */
+      printf ("close failed with error %s\n", strerror (errno));
+      exit (1);
+   }
+
+   rename (tmpfile, filename);
+   return;
 }

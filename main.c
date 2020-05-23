@@ -47,6 +47,8 @@ struct rte_table_netflow *table;
 #include "rte_table_netflow.c"
 #include "probe.c"
 
+void* export_thread_func (void* arg);
+
 static inline void
 print_ether_addr(const char *what, struct ether_addr *eth_addr)
 {
@@ -236,12 +238,25 @@ signal_handler(int signum)
 	}
 }
 
+
+/* Thread for exporting to file */
+void*
+export_thread_func (void* arg)
+{
+   while (1) {
+      sleep (1);
+      rte_table_export_to_file ("/tmp/netflow.csv");
+   }
+}
+
+
 int
 main(int argc, char **argv)
 {
 	int ret;
 	uint16_t nr_ports;
 	struct rte_flow_error error;
+   pthread_t exp_thread; /* Thread for exporting NetFlow to file */
 
 	ret = rte_eal_init(argc, argv);
 	if (ret < 0)
@@ -267,6 +282,9 @@ main(int argc, char **argv)
 
 	init_port();
 	setup_netflow_table();
+
+   //Setup thread for handling exports
+   pthread_create(&exp_thread, NULL, export_thread_func, NULL);
 
 	/* create flow for send packet with */
 #if 1
