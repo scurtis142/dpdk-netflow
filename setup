@@ -1,0 +1,5 @@
+#! /bin/bash
+modprobe uio_pci_generic
+cd ~/Documents/Thesis/dpdk-18.11.2/dpdk-stable-18.11.2/usertools/
+./dpdk-devbind.py --force --bind=uio_pci_generic 03:00.0
+echo "done"
