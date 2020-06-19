@@ -49,6 +49,8 @@
 
 #include "rte_table_netflow.h"
 
+uint64_t global_packet_count;
+
 void *
 rte_table_netflow_create(void *params, int socket_id, uint32_t entry_size)
 {
@@ -95,6 +97,8 @@ rte_table_netflow_create(void *params, int socket_id, uint32_t entry_size)
     t->n_entries = p->n_entries;
     t->f_hash = p->f_hash;
     t->seed = p->seed;
+
+    global_packet_count = 0;
 
     return t;
 }
@@ -219,6 +223,7 @@ rte_table_netflow_entry_add(
      * End of entry lock
      * release lock
      **********************************************************************/
+    global_packet_count++;
     return 1;
 }
 
@@ -273,6 +278,12 @@ rte_table_print(void *table)
 }
 
 
+void
+rte_table_print_packet_count (void) {
+   fprintf (stderr, "Total Packets Decoded: %lu\n", global_packet_count);
+}
+
+
 int
 rte_table_print_stats(void *table)
 {
@@ -298,9 +309,9 @@ rte_table_print_stats(void *table)
       rte_spinlock_unlock(&t->lock[i]);
 	}
 
+   printf ("total flows = %lu\n", total_flows);
    printf ("total bytes = %lu\n", total_bytes);
    printf ("total pkts  = %lu\n", total_pkts);
-   printf ("total flows = %lu\n", total_flows);
 
 
 	return 0;

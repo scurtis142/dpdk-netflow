@@ -112,9 +112,6 @@ main_loop(void)
 					rte_pktmbuf_free(m);
 				}
 				pkt_cnt += nb_rx;
-				if ((pkt_cnt % 1000000) == 0) {
-					printf("%d packets received\n", pkt_cnt);
-				}
 			}
 		}
 	}
@@ -246,6 +243,7 @@ export_thread_func (void* arg)
    while (1) {
       sleep (1);
       rte_table_export_to_file ("/tmp/netflow.csv");
+      rte_table_print_packet_count ();
    }
 }
 
